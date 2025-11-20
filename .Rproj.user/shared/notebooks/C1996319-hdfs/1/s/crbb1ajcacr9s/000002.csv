@@ -1,0 +1,6 @@
+"0","```bash
+# the bash chunks can be Knitted, but not run in notebook mode
+# or run the bash commands one by one in the terminal
+# show the hdfs commands
+hdfs
+```"

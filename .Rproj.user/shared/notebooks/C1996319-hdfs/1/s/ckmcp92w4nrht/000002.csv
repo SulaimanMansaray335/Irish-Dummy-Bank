@@ -1,0 +1,4 @@
+"0","```bash
+hdfs dfs -mkdir temp
+hdfs dfs -ls
+```"

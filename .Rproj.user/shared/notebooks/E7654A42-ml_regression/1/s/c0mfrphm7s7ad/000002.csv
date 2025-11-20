@@ -1,0 +1,20 @@
+"0","```r
+```r
+# form a list of the fitted models above
+slump_lr_models <- list(
+  \lr_p1\ = slump_lr_p1_fit,
+  \lr_p3\ = slump_lr_p3_fit,
+  \lr_p4\ = slump_lr_p4_fit,
+  \lr_p5\ = slump_lr_p5_fit,
+  \lr_full\ = slump_lr_full_fit
+)
+# the scoring function
+slump_test_fnc <- function(model, data = slump_partition$test){
+  sdf_predict(model, data) %>%
+  select(compressive_strength, prediction)
+}
+# compute predicted values
+slump_test_scores <- lapply(slump_lr_models, slump_test_fnc)
+# slump_test_scores
+```
+```"

@@ -1,0 +1,2 @@
+"0","plot(Mod1$residuals~Mod1$fitted, xlab=""Fitted Values"", ylab=""Residuals"", "
+"0","main=""Residual Plot"")"

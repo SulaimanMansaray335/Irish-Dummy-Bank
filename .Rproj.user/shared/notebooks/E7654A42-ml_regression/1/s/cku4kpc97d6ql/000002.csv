@@ -1,0 +1,6 @@
+"0","```r
+```r
+slump_sdf <- spark_read_csv(sc, \slump_sdf\, path = path.data)
+head(slump_sdf)
+```
+```"

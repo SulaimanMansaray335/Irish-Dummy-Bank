@@ -1,0 +1,7 @@
+"0","```bash
+# set the local working directory to s3_hdfs
+# if running in the terminal, cd to the s3_hdfs directory
+hdfs dfs -copyFromLocal cdat.csv temp/
+hdfs dfs -ls temp/
+hdfs dfs -du
+```"

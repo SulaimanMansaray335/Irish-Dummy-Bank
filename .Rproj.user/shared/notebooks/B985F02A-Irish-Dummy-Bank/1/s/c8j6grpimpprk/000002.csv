@@ -1,0 +1,6 @@
+"0","set.seed(1)"
+"0","train.control <- trainControl(method = ""LOOCV"", allowParallel = TRUE)"
+"0",""
+"0","caretm1 <- train(interest_rate ~ emp_length + year + home_ownership + I(annual_inc^(-.313)) + I(loan_amount^(.172)) + term + application_type + purpose + interest_payments + loan_condition + grade + I(dti^(-1.029)) + I(total_pymnt^(.161)) + I(total_rec_prncp^(.100))+recoveries + I(installment^(.080)) + region, method = ""lm"", data = kaggle9, weights = Wts, trControl = train.control)"
+"2","Error: cannot allocate vector of size 3.3 Mb
+"

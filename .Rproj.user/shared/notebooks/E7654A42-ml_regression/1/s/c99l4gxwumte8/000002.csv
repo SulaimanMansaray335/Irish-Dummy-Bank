@@ -1,0 +1,13 @@
+"0","```r
+```r
+library(ggplot2)
+cbind(terms, slump_lr_errors) %>%
+  ggplot(aes(x = terms)) +
+  geom_point(aes(y = rmse, color = 'rmse')) +
+  geom_line(aes(y = rmse, color = 'rmse')) +
+  geom_point(aes(y = mae, color = 'mae')) +
+  geom_line(aes(y = mae, color = 'mae')) + 
+  ggtitle(\Performance Metric for the Slump Models\) +
+  xlab(\Terms in the Model\) + ylab(\Error Measure\)
+```
+```"

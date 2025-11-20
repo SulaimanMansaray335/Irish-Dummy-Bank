@@ -1,0 +1,8 @@
+"0","```r
+```r
+slump_lr_p4_fit <- slump_partition$training %>%
+  ml_linear_regression(compressive_strength ~  cement + fly_ash + water + coarse_aggr)
+summary(slump_lr_p4_fit)
+tidy(slump_lr_p4_fit)
+```
+```"

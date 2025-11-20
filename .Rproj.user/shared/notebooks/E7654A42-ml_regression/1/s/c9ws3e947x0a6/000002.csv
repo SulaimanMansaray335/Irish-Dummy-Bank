@@ -1,0 +1,12 @@
+"0","```r
+```r
+for(name in names(slump_test_scores)) {
+  slump_lr_errors <- slump_test_scores[[name]] %>%
+    calculate_errors %>%
+    mutate(model = name) %>%
+    rbind(slump_lr_errors, .)
+  
+}
+cbind(terms, slump_lr_errors)
+```
+```"

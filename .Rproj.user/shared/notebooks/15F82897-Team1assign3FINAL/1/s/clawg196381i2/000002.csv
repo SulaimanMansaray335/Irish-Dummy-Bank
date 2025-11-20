@@ -1,0 +1,8 @@
+"0",""
+"0","library(tidyr)"
+"0","library(dplyr, warn.conflicts = FALSE)"
+"0",""
+"0","coli_wide<-read.csv(""coli_wide.csv"",stringsAsFactors=FALSE)"
+"2","cannot open file 'coli_wide.csv': No such file or directory"
+"2","Error in file(file, ""rt"") : cannot open the connection
+"

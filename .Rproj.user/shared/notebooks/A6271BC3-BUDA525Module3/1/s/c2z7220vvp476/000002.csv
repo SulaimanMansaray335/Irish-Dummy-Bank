@@ -1,0 +1,2 @@
+"0","library(alr4)"
+"0","plot(wblake$Scale~wblake$Age, main=""Increasing Variance"",xlab=""Age"",ylab=""Length of Scale"")"

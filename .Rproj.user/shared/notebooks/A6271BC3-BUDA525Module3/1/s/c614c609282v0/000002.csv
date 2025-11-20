@@ -1,0 +1,25 @@
+"0","library(alr4)"
+"2","Loading required package: car
+"
+"2","Loading required package: carData
+"
+"2","Registered S3 method overwritten by 'data.table':
+  method           from
+  print.data.table     
+"
+"2","Loading required package: effects
+"
+"2","Registered S3 methods overwritten by 'lme4':
+  method                          from
+  cooks.distance.influence.merMod car 
+  influence.merMod                car 
+  dfbeta.influence.merMod         car 
+  dfbetas.influence.merMod        car 
+"
+"2","lattice theme set by effectsTheme()
+See ?effectsTheme for details.
+"
+"0","attach(BigMac2003)"
+"0","Mbm=lm(BigMac~log(Bread)+log(Rice))"
+"0","plot(Mbm$residuals~Mbm$fitted, xlab=""Fitted Values"", ylab=""Residuals"","
+"0","main=""Big Mac Residual Plot"")"

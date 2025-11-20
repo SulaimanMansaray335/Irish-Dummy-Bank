@@ -1,0 +1,11 @@
+"0","```r
+```r
+calculate_errors <- function(data_scores) {
+  data_scores %>%
+    mutate(pred_diff2 = (compressive_strength - prediction)^2) %>%
+    mutate(pred_abs = abs(compressive_strength - prediction)) %>%
+    summarize(rmse = sqrt(mean(pred_diff2)), mae = mean(pred_abs)) %>%
+    collect()
+}
+```
+```"

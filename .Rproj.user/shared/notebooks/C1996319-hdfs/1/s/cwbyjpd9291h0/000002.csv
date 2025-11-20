@@ -1,0 +1,9 @@
+"0","```bash
+# show the options for the dfs command
+hdfs dfs 
+# hadoop fs
+# echo $? show the exit code in the last command, which should be 0
+echo $?
+# if the exit code is not 0, you can use:
+# echo \"\"  # or $?
+```"

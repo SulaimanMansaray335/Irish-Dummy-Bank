@@ -1,0 +1,5 @@
+"0","  "
+"0","grid.arrange(gghistogram(kaggle, x = ""recoveries"", y =""..count..""), "
+"0","             gghistogram(kaggle, ""annual_inc"", y = ""..count..""),"
+"0","             gghistogram(kaggle, ""dti"", y = ""..count..""),"
+"0","             gghistogram(kaggle, ""loan_amount"", y= ""..count..""))"

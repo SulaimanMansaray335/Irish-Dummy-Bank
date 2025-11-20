@@ -1,0 +1,7 @@
+"0","```r
+```r
+slump_test_df <- slump_partition$test %>%
+collect()
+y <- slump_test_df$compressive_strength
+```
+```"

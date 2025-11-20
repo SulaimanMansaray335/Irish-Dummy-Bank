@@ -1,0 +1,27 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1608614903610.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "340162272",
+    "id" : "FFE1FAC3",
+    "lastKnownWriteTime" : 1609640990,
+    "last_content_update" : 1611089222009,
+    "path" : "C:/Users/19194/Desktop/Irish-Dummy-Bank/Irish Dummy Bank.Rmd",
+    "project_path" : "Irish Dummy Bank.Rmd",
+    "properties" : {
+        "chunk_output_type" : "inline",
+        "cursorPosition" : "10,0",
+        "scrollLine" : "9",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

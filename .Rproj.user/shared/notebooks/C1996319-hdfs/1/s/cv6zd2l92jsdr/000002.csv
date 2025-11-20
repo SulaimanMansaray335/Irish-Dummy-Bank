@@ -1,0 +1,5 @@
+"0","```bash
+hdfs dfs -rm -f temp/cdat.csv
+hdfs dfs -rmdir temp
+hdfs dfs -ls
+```"

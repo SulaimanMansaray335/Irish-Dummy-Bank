@@ -1,0 +1,7 @@
+"0","```r
+```r
+terms <- c(0, 1, 3, 4, 5, 7)
+slump_lr_errors <- data.frame(rmse = sqrt(mean((y - mean(y))^2)),
+                              mae = mean(abs(y - mean(y))), model = \lr_null\)
+```
+```"

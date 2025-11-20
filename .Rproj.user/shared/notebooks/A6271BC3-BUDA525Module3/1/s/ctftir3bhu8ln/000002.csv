@@ -1,0 +1,10 @@
+"0","library(alr4)"
+"0","attach(BigMac2003)"
+"2","The following objects are masked from BigMac2003 (pos = 3):
+
+    Apt, BigMac, Bread, Bus, FoodIndex, Rice, TaxRate, TeachGI, TeachHours, TeachNI
+
+"
+"0","Mbm2=lm(log(BigMac)~log(Bread)+log(Rice))"
+"0","plot(Mbm2$residuals~Mbm2$fitted, xlab=""Fitted Values"", ylab=""Residuals"","
+"0","main=""Big Mac 2 Residual Plot"")"

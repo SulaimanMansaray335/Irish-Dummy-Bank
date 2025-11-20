@@ -1,0 +1,456 @@
+---
+title: "Sulaiman Mansaray, Irish Dummy Bank Demonstration"
+output:
+  pdf_document: default
+  word_document: default
+  html_notebook: default
+  html_document:
+    df_print: paged
+---
+
+With this project, we will be looking at data coming from The Irish Dummy Bank located in Ireland. For this project, we will be conducting a supervised learning method of linear regressions to see what factors may influence interest rates of loans. Although, if you work in the financial industry, it is typically known what variables determine one's interest rate, I am going to conduct this analysis for quick demonstrative purposes. This data set has 30 variables with 887,379 observations, but for this purpose, we will not use the entire 30 features that are available to us. Instead I am going to start off with 5 variables and see if they help explain the correlation with interest rates given on loans.As stated before, I chose to strictly do a linear regression for inferential purposes, I will see how well my model predicts using cross validation, however, I am going to introduce new algorithms to this dataset in my next personal project.
+```{r}
+memory.size()
+memory.limit()
+memory.limit(size=500000000)
+library(ggplot2)
+library(sparklyr)
+library(ggpubr)
+library(caret)
+library(alr4)
+library(lmtest)
+library(gridExtra)
+library(foreach)
+library(doParallel)
+
+detectCores()
+mine=10
+cl<-makeCluster(mine)
+registerDoParallel(cl)
+getDoParWorkers()
+
+
+kaggle <- read.csv('kaggleloan.csv')
+
+head(kaggle)
+str(kaggle)
+attach(kaggle)
+dim(kaggle)
+
+
+```
+First and foremost, the first thing that we want to do is look at the summary statistics to see of any potential transformations that may need to be done.We can also see which variables that we will most likely use. Just for the sake of analysis, I am only going to use dti, loan_amount, annual_inc, and recoveries as our predictor variables. The variable recoveries is a little tricky due to the fact thata interest rate is usually decided before any recoveries can occur, so I predict that this variable may be a feature we may not even need. We will test it never the less.
+```{r}
+summary(kaggle)
+``` 
+
+
+The range that annual_income uses is quit large, ranging from 4500 to 9500000. It may be a good idea to use a log scale for that particular variable. Dti, which is debt to income ratio, shows a maximum value of 9999 which does not make sense, this variable may cause some potential problems. Next we look at our plots to see if we can visually identify any variance issues and issues with linearity.
+
+```{r}
+
+ grid.arrange(ggplot(kaggle, aes(recoveries, interest_rate)) + 
+   geom_point() + 
+   scale_x_continuous(name ="Recoveries")+
+   scale_y_continuous(name ="Interest Rate") +
+   ggtitle("Interest Rate vs. Recoveries"),  
+   ggplot(kaggle, aes(annual_inc, interest_rate)) + 
+   geom_point() + 
+   scale_x_continuous(name ="Annual Income")+
+   scale_y_continuous(name ="Interest Rate") +
+   ggtitle("Interest Rate vs. Annual Income"),
+   ggplot(kaggle, aes(dti, interest_rate)) + 
+   geom_point() + 
+   scale_x_continuous(name ="DTI")+
+   scale_y_continuous(name ="Interest Rate") +
+   ggtitle("Interest Rate vs. DTI"),
+   ggplot(kaggle, aes(loan_amount, interest_rate)) + 
+   geom_point() + 
+   scale_x_continuous(name ="Loan Amount")+
+   scale_y_continuous(name ="Interest Rate") +
+   ggtitle("Interest Rate vs. Loan Amount"))
+  
+grid.arrange(gghistogram(kaggle, x = "recoveries", y ="..count.."), 
+             gghistogram(kaggle, "annual_inc", y = "..count.."),
+             gghistogram(kaggle, "dti", y = "..count.."),
+             gghistogram(kaggle, "loan_amount", y= "..count.."))
+             
+        
+  
+```
+
+The scatterplots are a bit difficult to read, more than likely due to the sheer amount of observations that are being presented in this project. All in all it seems as if all of the assumptions may not have been met, including homoscedascity of the residuals. These 4 variables also do not seem to follow a normal distribution as well when looking at the histograms, except for the loan amount. As stated earlier, the range for DTI is way off due to dti being of a percentage. We can reduce this dataset to only include dti of equal to or less than 100. The other 3 variables look like great candidates for the log-scale transformation. For now we will leave everything as is. We can check to see the outliers we currently have.
+```{r}
+mod <- lm(interest_rate~recoveries+annual_inc+dti+loan_amount)
+summary(mod)
+outlierTest(mod)
+infIndexPlot(mod)
+kaggle[which(cooks.distance(mod) > .1),]
+```
+```{r}
+plot(hatvalues(mod))
+kaggle[which(hatvalues(mod)>0.3),]
+
+```
+
+
+First we will look at the output of the linear model we just created. All of our variable seem to show levels of significance if we are to determine them using a p-value of 0.5. The recoveries variable states that with an additional unit increase of recoveries, an increase of the interest rate would occur by about .00101. A unit increase of annual income would result in a decrease of the interest rate by .000008631. A unit increase of dti by 1 unit would increase interest rate by .01656. A unit increase in the loan amount would increase interest rate by .00009306. These seem reasonable, but we now that there is a likelihood that the initial model we created isn't even the correct model needed to be used. As we can see the variables we have thus far only give us an adusted R-Squared of .05, a very small value to explain the variance of our datapoints.
+
+Looking at the outlier tests, several outliers seem to appear at observations 484447 and observations 531887. Those observations seem to be outliers in both the Y-space and the X-space. Several other observations may need to be checked out too for their possible influence on the dataset as a whole. Let's observe these observations points and see how they compare with the rest of the data. 
+```{r}
+summary(kaggle)
+kaggle[c(484447,531887),]
+```
+Both of these obervations have dti's of 9999 which is impossible since dti, is determined as a percentage. It is safe to say that these observations can be removed due to the fact that they have a value on a variable that is impossible to get. However, using the outliertest, we are able to see these two obervations are also outliers in the Y-space. What I want to do first is use create a model with those outliers first, then compare it with a model without those outliers. 
+
+```{r}
+modmod <- lm(interest_rate~recoveries+annual_inc+dti+loan_amount, kaggle[-c(484447, 531887),])
+summary(modmod)
+```
+All the coefficient values have changed slightly with the exception of the dti coefficient which went from .0165 to .0708. Now to check if our assumptions have been met regarding this model.
+
+```{r}
+ncvTest(modmod)
+plot(modmod)
+infIndexPlot(modmod)
+outlierTest(modmod)
+```
+As suspected, our assumptions were not met. It doesn't seem as if we accounted for homoscedacity and we have 3 other major outliers we need to observe. We also have a normality assumption that has not been met yet. Once again, I am going to look at these outliers and compare them to the rest of the data.
+
+```{r}
+kaggle[475047,]
+kaggle[684001,]
+kaggle[697245,]
+kaggle[866974,]
+```
+Looking at the 3 most outliers, observations 697245,866974,684001 have outlier in regards to the annual income amount. All three of these observations have incomes in the millions where else the average annual income is $65,000 with a median of around $75,000.It is interesting to note that obervation 684001 is considered a bad loan despite the annual income this indivdual receives, however that is not the focus of this project at the moment. The first observation, 475047, has a dti of 1092.52. Again, dti is a percentage measure and having one above 100% is infeasible. The first observation I would remove, however the other two just needs a transformation on the variable, annual_income, to fix their leverage. 
+
+Next I remove observation 475047 and use powertransformations to see if we can finally improve our assumptions.
+```{r}
+kaggle2 <- kaggle[-c(484447, 531887, 475047),]
+mod3 <- lm(interest_rate~recoveries+annual_inc+dti+loan_amount, kaggle2)
+summary(mod3)
+
+```
+
+```{r}
+plot(mod3)
+```
+
+```{r}
+ncvTest(mod3)
+outlierTest(mod3)
+```
+Once again, our assumptions have not been met. Now it is time to transform our variables out to hopefully fix these assumptions.
+
+
+```{r}
+summary(powerTransform(cbind(recoveries, annual_inc, dti, loan_amount)~ 1, kaggle2, family = "bcnPower"))
+```
+
+Looking at the proposed power transformations, it looks as if we are getting figures, however these figures may prove to cause difficulty in interpretation. Since the sole purpose of this project is for inferential purposes, we may havve to do some additional rounding of the figures compared to the original ones given. For this case, I am going to use a log transformation for the variable "annual_inc" and the variable "loan_amount".
+
+
+```{r}
+mod4 <- lm(interest_rate~recoveries+log(annual_inc)+dti+log(loan_amount), kaggle2)
+summary(mod4)
+
+```
+
+```{r}
+plot(mod4)
+ncvTest(mod4)
+```
+
+The assumptions are still not met, it still looks as if all of them are being violated. For curiosity purposes,I am going to use the actual recommended lambda values given to me through the powerTransform recommendations to see if they would fix our assumption violations.However, doing so, we would lose a tremendous amount of interpretability and instead would have to resort to predictability which is not the goal of this project.The amount of 0's in some of the variables, especially the recoveries variable can prove to be very troublesome and may not be feesible for this type of problem. At this moment in time, a linear regression model may not be suitable, especailly for variables like recoveries and dti which contain a good amount of zero values.
+
+
+```{r}
+kaggleset <- subset(kaggle2, dti!= 0)
+length(which(kaggleset$dti == 0))
+length(which(kaggleset$annual_inc == 0))
+
+modtrans <- lm(interest_rate~recoveries+I(annual_inc^(-0.3))+I(dti^(-3))+I(loan_amount^(.454)), kaggleset)
+summary(modtrans)
+
+```
+
+In this case, it is very difficult to transform the recoveries to one with a log transformation or a negative power transformation due to the recoveries variable having 862699 zeroes out of 887376 observations. It is clear that a simple linear regeression model is not the best model if we were to use this variable. Because the recoveries variable is a variable I believe is inappropiate for this model, I am very inclined to remove it, as recoveries are not much of an indicator on one's interest rate of the same loan.Looking at the summary output, only the transformed version of DTI seems to be insignificant wherelse all other variables are statistically significant. I can use an ANOVA to determine if I should really remove the recoveries variable.
+
+```{r}
+anova(modtrans)
+```
+Nope, the ANOvA believes that using the recoveries variable is better than just using the mean function without it. Once again, the transformed dti variable is a feature that is recommended to be removed. At this point it is probably better to add more variables to see if they can explain the relationship a bit better. Adding higher order terms for our predictors, such as interactions and polynomials, is probably going to be appropriate moving forward. 
+
+Next, we will showcase all of the variables and how they affect the influence on the interest rate. 
+
+```{r}
+summary(kaggle)
+str(kaggle)
+```
+
+Looking at the variables we are working with, I can already tell that some of the variables are just used for nominal purposes and have no bearing to any potential influences they may have to our interest rate dependant variable. However, instead of manually taking them out, we will let the model do feature selection on its own. The only feature that I will be removing will be the ID variable as stated before, that is the only clear nominal value that I would be safe to remove. Also, several variables that should be factors are being notated as intergers which would greatly misinterpret our analysis if we do not change them to their appropriate data type. To examplify, I will run a model with the variable as is and then run the summary.
+
+```{r}
+fullmod <- lm(interest_rate~.,kaggle[,-1])
+summary(fullmod)
+```
+This is the result of our linear regression model without doing any data wrangling. As you can see, some of our estimated parameters have "NA" values next to them. Usually this indicates that there is overparameterization. Now it is time to transform some of these variables to the appropriate data type, factors.
+
+```{r}
+str(kaggle)
+kaggle3 <- kaggle
+nonfactor <- list(2,3,4,6,7,8,10,12,13,14,15,16,17,18,19,20,21,23,24,30)
+for(i in nonfactor){
+  kaggle3[ ,i] <- as.factor(kaggle3[ , i])
+}
+```
+
+```{r}
+str(kaggle3)
+```
+
+```{r}
+fullmod2 <- lm(interest_rate~., kaggle3[,-1])
+summary(fullmod2)
+```
+As we can see, there still may be issues of overparameterizations. Very easy to tell considering some variables describe the same things such as purpose and purpose_cat (purpose category); grade and grad_cat etc. In short, we have perfect correlation amongst these variables. Same with the issue date and final date variables, those are typically explained through the year and the term that the loans may have been issued, so it may be redundant to keep that information in as well. What we can do is eliminate the variables that have a "cat" associated with it then rerun the regression. From then on we can diagnose and check for assumptions on the full model before beginning feature selection.
+```{r}
+kaggle4 <- kaggle3[,-c(1,3,4,7,8,10,13,15,17,19,21,24)]
+str(kaggle4)
+```
+
+```{r}
+fullmod3  <- lm(interest_rate~., kaggle4)
+summary(fullmod3)
+```
+Looking at the summary, this looks a lot different than our first model with only 4 variables. Not only that, we have an adjusted R-squared value of .9491. We still need to check for our assumptions such as multicollinearity and homoscedascity.
+
+```{r}
+
+plot(fullmod3)
+```
+
+```{r}
+ncvTest(fullmod3)
+outlierTest(fullmod3)
+infIndexPlot(fullmod3, vars = c("Cook", "Studentized"))
+plot(cooks.distance(fullmod3))
+kaggle4[which(cooks.distance(fullmod3)>0.1),]
+kaggle4[which(hatvalues(fullmod3)>0.3),]
+kaggle4[which(dti > 100),]
+
+```
+We have the same influential observations at observations 484447 and 531887 in the full model as we did in our model with only 4 variables. once again, these are the same two observations that give a dti of around 9999, which we know is impossible because a dti is a percentage value and we simply can't have a percentage of 999%. We can easily remove those two observations since they give values that ae impossible.The difference this time, however, is these two observations are no longer outliers in the Y-space as indicated by the outliertest. Another thing to note is that these two observations are the only one with cook's distances of anything above 0.1 which is different from the models with 4 variables which usually had around 27 observations with cook's distances of more than 0.1. For this case this time, instead of only removing a few observations that seem to be outliers, we are going to remove all observations that have a dti of above 100.
+
+Because of my plan to use PowerTransform on our continous variables, I am going to eliminate the variables that have an excessive amount of 0 values. The only problem, however, is the fact that the "recoveries" variable seems to have more 0 values than not, so eliminating all these 0 values will greatly reduce the amount of observations we can work with. Instead, I am going to change the recoveries variable into a factor instead.
+
+Another thing I will do will be to change the emp_length variable into a factor variable as well.
+```{r}
+kaggle5 <- kaggle4[-(which(dti > 100)),]
+kaggle7 <- subset(kaggle5, dti != 0 & total_rec_prncp != 0 & total_pymnt != 0 & installment != 0)
+kaggle8 <- kaggle7
+kaggle8$recoveries <- ifelse(kaggle7$recoveries == 0, FALSE, TRUE)
+kaggle8$recoveries <- as.factor(kaggle8$recoveries)
+kaggle8$emp_length <- cut(kaggle8$emp_length_int, breaks = c(0,3,6,10), labels = c("short", "medium", "long"))
+kaggle9 <- kaggle8[,-2]
+fullmod4 <- lm(interest_rate~., kaggle9)
+summary(fullmod4)
+```
+
+```{r}
+plot(fullmod4)
+ncvTest(fullmod4)
+```
+```{r}
+boxCox(fullmod4)
+invResPlot(fullmod4)
+```
+Assumptions are still not met, and when using the box-cox method to find a suitable transformation for the response variable, the best solution would be to keep the response variable as is. 
+
+```{r}
+kaggle10 <- kaggle9
+kaggle10$resi <- fullmod4$residuals
+
+variance.fullmod4 <- lm(log(resi^2)~log(annual_inc)+log(loan_amount)+log(dti)+log(total_pymnt)+log(total_rec_prncp)+log(installment), kaggle10)
+
+kaggle10$varfunc <- exp(variance.fullmod4$fitted.values)
+
+fullmod4.gls <- lm(interest_rate~.,weights = 1/sqrt(kaggle10$varfunc), kaggle9)
+
+summary(fullmod4.gls)
+ncvTest(fullmod4.gls)
+bptest(fullmod4.gls)
+class(kaggle9$home_ownership)
+```
+
+
+We still have a non constant variance and there seems to be a lack of linearity. There seems to be a possibility that, even with transformations, we may need to add higher order terms like interactions, polynomials or even splines. First, we will look to correct for linearity later and look to correct multivariate normality. To correct for multivariate normality, we will once again see about any appropriate transformations on our variables to meet this assumption. This time we will be transforming 8 of our 18 variables since the remaining 10 are just factor variables. Not only will this method  
+```{r}
+str(kaggle8)
+summary(powerTransform(cbind(annual_inc, loan_amount, dti, total_pymnt, total_rec_prncp, installment)~ 1, kaggle9, family = "bcnPower"))
+```
+Looking at our lambda values, it may prove difficult to do some of these transformations when we have variables that contain 0 values. Luckily, I already subset our data so that way there are no 0 values.
+```{r}
+fullmod5 <- lm(interest_rate ~ emp_length + year + home_ownership + I(annual_inc^(-.313)) + I(loan_amount^(.172)) + term + application_type + purpose + interest_payments + loan_condition + grade + I(dti^(-1.029)) + I(total_pymnt^(.161)) + I(total_rec_prncp^(.100))+recoveries + I(installment^(.080)) + region, kaggle9 )
+
+summary(fullmod5)
+```
+
+```{r}
+plot(fullmod5)
+ncvTest(fullmod5)
+bptest(fullmod5)
+```
+
+With the transformations, we do not seem to have our assumptions met. Even with these transoformation values, it is very difficult to make any interpretations, so the next best thing would be to use log values for variables that were given power values closer to 0.
+
+```{r}
+newmod <- lm(interest_rate~ emp_length+year+home_ownership+log(annual_inc)+log(loan_amount)+term+application_type+purpose+interest_payments+loan_condition+grade+I(dti^(-1))+log(total_pymnt)+log(total_rec_prncp)+recoveries+log(installment)+region, kaggle9)
+
+summary(newmod)             
+```
+
+```{r}
+
+plot(newmod)
+ncvTest(newmod)
+bptest(newmod)
+```
+Even with the transformation of all our continuous variables, we still fail to meet our assumptions. Showcasing the difficulty of meeting the assumptions with linear regression modeling. The next technique I am going to use is the box cox method on only the response variable. 
+```{r}
+invResPlot(fullmod5)
+```
+
+```{r}
+invResPlot(newmod)
+```
+
+The boxcox method for both models show that we should keep the response variable, interest rate, as is which makes sense due to the range of the interest rate values. 
+
+The powertransformations by themselves, the true values and the rounded values, have failed to provide a model with a constant variance, our next step would be to try to apply suitable weights. Before we do so, I usually like to see the variance of the features that may provide difference in variables. In this case, these features would be the factor variables.
+```{r}
+tapply(kaggle9$interest_rate, kaggle9$year, var)
+tapply(kaggle9$interest_rate, kaggle9$home_ownership, var)
+tapply(kaggle9$interest_rate, kaggle9$term, var)
+tapply(kaggle9$interest_rate, kaggle9$application_type, var)
+tapply(kaggle9$interest_rate, kaggle9$purpose, var)
+tapply(kaggle9$interest_rate, kaggle9$interest_payments, var)
+tapply(kaggle9$interest_rate, kaggle9$loan_condition, var)
+tapply(kaggle9$interest_rate, kaggle9$grade, var)
+tapply(kaggle9$interest_rate, kaggle9$recoveries, var)
+tapply(kaggle9$interest_rate, kaggle9$region, var)
+tapply(kaggle9$interest_rate, kaggle9$emp_length, var)
+```
+Certain features, particularly the home_ownership variable and the application_type variabe may show large differences of variance among the groups within that variable. We will go ahead and just use the home_ownership variable and see if they provide us a better constant variance in our model. First we will try the model with the rounded transformations, then we will try the weights with the model that has the actual lambda values for the variable transformations.
+
+```{r}
+Var=tapply(kaggle9$interest_rate,kaggle9$home_ownership,var)
+Wts=rep(0,length(kaggle9$home_ownership))
+for(i in 1:length(kaggle9$home_ownership)){
+	Wts[i]=1/Var[kaggle9$home_ownership[i]]	
+} 
+
+realmod0 <- lm(interest_rate~ emp_length+year+home_ownership+log(annual_inc)+log(loan_amount)+term+application_type+purpose+interest_payments+loan_condition+grade+I(dti^(-1))+log(total_pymnt)+log(total_rec_prncp)+recoveries+log(installment)+region, kaggle9, weight = Wts)
+
+ncvTest(realmod0)
+```
+This still doesn't seem to correct for our constant variance. We can now try the model with the actual transformation values. 
+
+```{r}
+
+realmod1 <- lm(interest_rate ~ emp_length + year + home_ownership + I(annual_inc^(-.313)) + I(loan_amount^(.172)) + term + application_type + purpose + interest_payments + loan_condition + grade + I(dti^(-1.029)) + I(total_pymnt^(.161)) + I(total_rec_prncp^(.100))+recoveries + I(installment^(.080)) + region, kaggle9, weights = Wts)
+
+ncvTest(realmod1)
+```
+
+```{r}
+plot(realmod1)
+```
+
+This seems to give us the constant variance that we have been looking for as we fail to reject the null hypothosis that the variance of the model is constant. Since our best model is the one using the actual non-rounded powertransform values, we will no longer be able to truly interpret what the variables are telling us. At this point, we can only use the model for prediction purposes. 
+
+The last thing I want to do is to see about adding an interaction in the model. We can do this to see if this would fix for any linearity as well as provide better prediciton once we do A/B testing. For now, I will do an interaction between emp_lenght and year, both factor variables. 
+
+```{r}
+realmod2 <- lm(interest_rate ~ emp_length * year + home_ownership + I(annual_inc^(-.313)) + I(loan_amount^(.172)) + term + application_type + purpose + interest_payments + loan_condition + grade + I(dti^(-1.029)) + I(total_pymnt^(.161)) + I(total_rec_prncp^(.100))+recoveries + I(installment^(.080)) + region, kaggle9, weights = Wts)
+
+ncvTest(realmod2)
+
+```
+
+We now have 2 different models we can compare. Before we move forward with that, I want to do feature selection using the step-wise method. We will do the first model first and then the model with the interaction second. 
+ 
+ 
+```{r}
+mod0 <- lm(interest_rate~1, kaggle9)
+step(realmod1, direction = "backward", data = kaggle9)
+```
+It looks as if there are no variables that are recommended to be eliminated. All of the variables seems to fit the data, and it looks as if about 95% of the variance is explained as indicated from the adjusted R-squared value. We can try using the stepwise selection that doesn't indicate either backwards or forwards.  
+
+```{r}
+step2 <- step(realmod1, scope = list(lower=~1,upper=~emp_length + year + home_ownership + I(annual_inc^(-.313)) + I(loan_amount^(.172)) + term + application_type + purpose + interest_payments + loan_condition + grade + I(dti^(-1.029)) + I(total_pymnt^(.161)) + I(total_rec_prncp^(.100))+recoveries + I(installment^(.080)) + region, data=kaggle9))
+
+step2
+```
+Just as before, both methods seem to suggest dropping none of the variables that are already in the model. As stated before, we can try to model for linearity using higher order terms and interactions, but once we begin adding polynomials and splines, interpretation of the model becomes very difficult. We are better off using other machine learning methods like support vector machines, neural networks, and decision trees. In the next section I will be doing just that, adding higher order terms and then looking to see which model predicts to best.  
+
+With what we have now, we can go ahead and interpret what our parameters are telling us..... To be Continued
+```{r}
+summary(step2)
+```
+```{r}
+step(realmod2, direction = "backward", data = kaggle9)
+```
+
+
+```{r}
+step3 <- step(realmod2, scope = list(lower=~1,upper=~ emp_length * year + home_ownership + I(annual_inc^(-.313)) + I(loan_amount^(.172)) + term + application_type + purpose + interest_payments + loan_condition + grade + I(dti^(-1.029)) + I(total_pymnt^(.161)) + I(total_rec_prncp^(.100))+recoveries + I(installment^(.080)) + region, kaggle9))
+
+step3
+```
+
+Now to compare the two models we can use the AIC function to see whichever has the lowest AIC, but ultimately, we will be using cross-validation in order to determine which is the best model to use. 
+```{r}
+AIC(realmod1, realmod2)
+
+```
+The first model without the interaction seems to be the best based off of the AIC, now to use cross validation testing. 
+```{r}
+set.seed(1)
+train.control <- trainControl(method = "LOOCV", allowParallel = TRUE)
+
+caretm1 <- train(interest_rate ~ emp_length + year + home_ownership + I(annual_inc^(-.313)) + I(loan_amount^(.172)) + term + application_type + purpose + interest_payments + loan_condition + grade + I(dti^(-1.029)) + I(total_pymnt^(.161)) + I(total_rec_prncp^(.100))+recoveries + I(installment^(.080)) + region, method = "lm", data = kaggle9, weights = Wts, trControl = train.control)
+
+print(caretm1)
+
+```
+Now to do the model with the interaction. 
+```{r}
+set.seed(2)
+
+caretm2 <- train(interest_rate ~ emp_length * year + home_ownership + I(annual_inc^(-.313)) + I(loan_amount^(.172)) + term + application_type + purpose + interest_payments + loan_condition + grade + I(dti^(-1.029)) + I(total_pymnt^(.161)) + I(total_rec_prncp^(.100))+recoveries + I(installment^(.080)) + region, method = "lm", data = kaggle9, weights = Wts, trControl = train.control)
+
+print(caretm2)
+
+
+stopCluster(cl)
+```
+
+
+
+
+```{r}
+foreach(i=1:dim(kaggle9)[1],.combine="+")%dopar%{
+	M1<-lm(interest_rate ~ emp_length + year + home_ownership + I(annual_inc^(-.313)) + I(loan_amount^(.172)) + term + application_type + purpose + interest_payments + loan_condition + grade + I(dti^(-1.029)) + I(total_pymnt^(.161)) + I(total_rec_prncp^(.100))+recoveries + I(installment^(.080)) + region, kaggle9[-i,], weights = Wts)
+	sum((kaggle9$interest_rate[i]-predict(M1,newdata=kaggle9[i,]))^2)
+}
+
+foreach(i=1:dim(kaggle9)[1],.combine="+")%dopar%{
+	M2<-lm(interest_rate ~ emp_length * year + home_ownership + I(annual_inc^(-.313)) + I(loan_amount^(.172)) + term + application_type + purpose + interest_payments + loan_condition + grade + I(dti^(-1.029)) + I(total_pymnt^(.161)) + I(total_rec_prncp^(.100))+recoveries + I(installment^(.080)) + region, kaggle9[-i,], weights = Wts)
+	sum((kaggle9$interest_rate[i]-predict(M2,newdata=kaggle9[i,]))^2)
+}
+
+```
+
+

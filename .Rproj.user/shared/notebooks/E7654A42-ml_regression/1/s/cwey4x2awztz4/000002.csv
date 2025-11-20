@@ -1,0 +1,6 @@
+"0","```r
+```r
+slump_partition <- tbl(sc, \slump_sdf\) %>%
+  sdf_partition(training = 0.7, test = 0.3, seed = 2)
+```
+```"
